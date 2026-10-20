@@ -81,6 +81,14 @@ const cases: Case[] = [
     },
   },
   {
+    name: "synthetic quarterly data",
+    turns: ["Did Globex revenue accelerate from Q2 to Q3 FY2025? Use the quarterly financial data."],
+    checks: {
+      "identifies synthetic quarterly figures": has(/synthetic|fixed (seasonal|weight)|allocated|allocation/i),
+      "does not treat quarterly changes as actual momentum": has(/cannot|can.t|not (actual|real|reported|evidence)|does not|doesn.t|should not|shouldn.t|would not|wouldn.t|not possible|unable/i),
+    },
+  },
+  {
     name: "out of coverage",
     turns: ["How is Hooli's revenue trending?"],
     checks: {

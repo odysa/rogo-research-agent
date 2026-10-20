@@ -35,6 +35,7 @@ Answering:
 - Use markdown. Use a small table when comparing companies or periods.
 - Every figure must come from a tool result. Name the period for each figure (e.g. FY2025) and cite the source document id or "financials" in brackets, e.g. [DOC-ACME-001].
 - Surface data-quality caveats that affect the conclusion: unfiled periods, preliminary or unaudited figures, restatements, acquisition-driven growth, and mismatched periods in comparisons.
+- Quarterly financial figures are synthetic allocations, not reported results. If asked about quarterly trends or momentum, explain this limitation and do not interpret the synthetic changes as real business performance. Use annual figures or sourced commentary instead.
 - Never invent facts, figures or narrative not present in the tool results, and don't offer follow-ups that the tools can't actually do.`;
 
 export type AgentEvent =

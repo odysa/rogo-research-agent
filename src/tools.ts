@@ -179,7 +179,10 @@ async function getFinancials(company: string) {
     annual,
     quarterly: record.quarterly,
     restatements: record.provenance.restatements,
-    warnings: record.warnings ?? [],
+    warnings: [
+      ...(record.warnings ?? []),
+      "Quarterly figures are synthetic: annual figures allocated using fixed seasonality weights. They are not reported quarterly results and must not be used to infer actual quarter-over-quarter trends or business momentum.",
+    ],
   };
 }
 

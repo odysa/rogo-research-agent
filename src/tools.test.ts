@@ -34,6 +34,7 @@ describe("getFinancials", () => {
     expect(fy2023.revenueGrowth).toBe(-0.025); // 8395 / 8610 - 1
     expect(fy2023.operatingMargin).toBe(0.094); // base 8.9% + FY2023 drift
     expect(result).not.toHaveProperty("provenance");
+    expect(result.warnings.join(" ")).toMatch(/Quarterly figures are synthetic.*not reported quarterly results.*must not be used/);
   });
 
   it("stops growth at the last filed year and keeps warnings", async () => {
