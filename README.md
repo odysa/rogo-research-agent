@@ -3,6 +3,27 @@
 This is a small, working research agent. An analyst asks a question about a company;
 the agent calls a few research tools and answers.
 
+## Reviewer walkthrough
+
+After [setup](#setup), try this short sequence in the UI:
+
+1. **Ask:** “Compare Acme and Globex and tell me which one appears to be growing faster.”
+   Look for the distinction between Acme Corp and Acme Robotics, visible lookup
+   progress, and growth figures tied to named periods and sources. Independent
+   lookups can run in parallel; exact model wording and tool choices vary.
+2. **Follow up:** “And how do Acme Corp's margins compare with Globex?”
+   Check that the answer uses the conversation context and presents a readable
+   comparison. Expand the research steps to inspect which lookups ran.
+3. **Ask:** “Did Globex revenue accelerate from Q2 to Q3 FY2025? Use the quarterly financial data.”
+   The answer should explain that these quarters are synthetic allocations,
+   rather than treating the change as real business momentum.
+
+For code review, start with [tools.ts](src/tools.ts) for deterministic calculations
+and warnings, then [agent.ts](src/agent.ts) for parallel tool execution, recoverable
+errors and the forced final-answer turn. Run `npm test` and `npm run typecheck`
+without a model key; `npm run eval` exercises eight live cases and uses API credits.
+See [NOTES.md](NOTES.md) for tradeoffs and the limits of these checks.
+
 ## What changed
 
 This version prioritizes trustworthy financial answers and a visible research process:
