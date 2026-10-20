@@ -31,10 +31,13 @@ export function App() {
   const [input, setInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const followRef = useRef(true);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const busy = messages.at(-1)?.status === "streaming";
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (followRef.current) bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
   /** Apply an update to the in-flight assistant message (always the last one). */
@@ -43,14 +46,18 @@ export function App() {
   }
 
   async function send(question: string, prior: Message[] = messages) {
-    if (!question.trim() || busy) return;
+    if (!question.trim() || busy || abortRef.current) return;
+    followRef.current = true;
 
     // Only completed exchanges go back as context; failed attempts are dropped.
     const history: ChatTurn[] = [];
     for (let i = 0; i + 1 < prior.length; i += 2) {
       const [q, a] = [prior[i], prior[i + 1]];
       if (a.status === "done") {
-        history.push({ role: "user", content: q.text }, { role: "assistant", content: a.text });
+        history.push(
+          { role: "user", content: q.text },
+          { role: "assistant", content: a.text },
+        );
       }
     }
 
@@ -81,7 +88,11 @@ export function App() {
                 ...m,
                 steps: [
                   ...m.steps,
-                  { id: event.id, label: describeTool(event.name, event.input), state: "running" },
+                  {
+                    id: event.id,
+                    label: describeTool(event.name, event.input),
+                    state: "running",
+                  },
                 ],
               }));
               break;
@@ -90,16 +101,30 @@ export function App() {
                 ...m,
                 steps: m.steps.map((s) =>
                   s.id === event.id
-                    ? { ...s, state: event.ok ? "ok" : "failed", ms: event.ms, error: event.error }
+                    ? {
+                        ...s,
+                        state: event.ok ? "ok" : "failed",
+                        ms: event.ms,
+                        error: event.error,
+                      }
                     : s,
                 ),
               }));
               break;
             case "done":
-              updateLast((m) => ({ ...m, text: event.answer, status: "done", ms: event.ms }));
+              updateLast((m) => ({
+                ...m,
+                text: event.answer,
+                status: "done",
+                ms: event.ms,
+              }));
               break;
             case "error":
-              updateLast((m) => ({ ...m, text: event.message, status: "error" }));
+              updateLast((m) => ({
+                ...m,
+                text: event.message,
+                status: "error",
+              }));
               break;
           }
         },
@@ -114,6 +139,7 @@ export function App() {
       updateLast((m) => ({ ...m, text, status: "error" }));
     } finally {
       abortRef.current = null;
+      inputRef.current?.focus();
     }
   }
 
@@ -125,108 +151,293 @@ export function App() {
 
   return (
     <div className="app">
-      <header>
-        <div>
-          <h1>Rogo Research</h1>
-          <p>Ask a question about a company in our coverage universe.</p>
+      <aside className="sidebar" aria-label="Research workspace">
+        <a className="brand" href="#" onClick={(e) => e.preventDefault()}>
+          <span className="brand-mark">r</span>rogo
+          <span className="brand-tag">RESEARCH</span>
+        </a>
+        <button
+          className="new-chat"
+          disabled={busy}
+          onClick={() => {
+            setMessages([]);
+            setInput("");
+            inputRef.current?.focus();
+          }}
+        >
+          <span aria-hidden="true">＋</span> New conversation
+        </button>
+        <div className="sidebar-label">
+          COVERAGE UNIVERSE <span>5</span>
         </div>
-        {messages.length > 0 && (
-          <button className="link" onClick={() => setMessages([])} disabled={busy}>
-            New chat
-          </button>
-        )}
-      </header>
-
-      <div className="transcript">
-        {messages.length === 0 && (
-          <div className="examples">
-            {EXAMPLES.map((example) => (
-              <button key={example} onClick={() => send(example)}>
-                {example}
-              </button>
-            ))}
+        <ul className="coverage">
+          {[
+            ["ACME", "Acme Corp", "Industrial Automation"],
+            ["ACMR", "Acme Robotics", "Robotics"],
+            ["GLBX", "Globex Inc", "Diversified Industrials"],
+            ["ITCH", "Initech", "Enterprise Software"],
+            ["UMBR", "Umbrella Health", "Healthcare Services"],
+          ].map(([ticker, name, sector]) => (
+            <li key={ticker}>
+              <span className="company-icon">{name[0]}</span>
+              <div>
+                <strong>{name}</strong>
+                <small>{sector}</small>
+              </div>
+              <span className="ticker">{ticker}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="sidebar-note">
+          <span className="status-dot" /> Local research workspace
+          <p>
+            Fictional company data.
+            <br />
+            Answers cite sources. Check figures.
+          </p>
+        </div>
+      </aside>
+      <main className="workspace">
+        <header className="topbar">
+          <div>
+            <span className="workspace-label">WORKSPACE</span>
+            <h1>Company research</h1>
           </div>
-        )}
-
-        {messages.map((message, i) =>
-          message.role === "user" ? (
-            <div key={i} className="bubble user">
-              {message.text}
-            </div>
-          ) : (
-            <div key={i} className={`bubble assistant ${message.status}`}>
-              {message.steps.length > 0 && (
-                <details className="steps" open={message.status === "streaming"}>
-                  <summary>
-                    {message.status === "streaming"
-                      ? "Researching…"
-                      : `Researched with ${message.steps.length} lookup${message.steps.length === 1 ? "" : "s"}` +
-                        (message.ms ? ` · ${(message.ms / 1000).toFixed(1)}s` : "")}
-                  </summary>
-                  <ul>
-                    {message.steps.map((step) => (
-                      <li key={step.id} className={step.state} title={step.error}>
-                        <span className="icon">
-                          {step.state === "running" ? "…" : step.state === "ok" ? "✓" : "✗"}
-                        </span>
-                        {step.label}
-                        {step.ms != null && <span className="ms">{step.ms}ms</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-
-              {message.status === "streaming" && !message.text && message.steps.length === 0 && (
-                <div className="pending">Thinking…</div>
-              )}
-
-              {message.status === "error" ? (
-                <div className="error">
-                  {message.text}
-                  {i === messages.length - 1 && (
-                    <button className="link" onClick={retry}>
-                      Retry
+          <span className="session-badge">
+            {busy
+              ? "Research in progress"
+              : messages.length
+                ? "Conversation active"
+                : "Ready to research"}
+          </span>
+          <button
+            className="mobile-new-chat"
+            disabled={busy}
+            onClick={() => {
+              setMessages([]);
+              setInput("");
+              inputRef.current?.focus();
+            }}
+          >
+            ＋ New chat
+          </button>
+        </header>
+        <div
+          className="transcript"
+          ref={scrollRef}
+          onScroll={() => {
+            const el = scrollRef.current;
+            if (el)
+              followRef.current =
+                el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+          }}
+        >
+          <div className="conversation">
+            {messages.length === 0 && (
+              <section className="welcome">
+                <div className="welcome-icon" aria-hidden="true">
+                  ↗
+                </div>
+                <p className="eyebrow">YOUR RESEARCH, IN CONVERSATION</p>
+                <h2>
+                  A clearer view of
+                  <br />
+                  the business.
+                </h2>
+                <p className="welcome-copy">
+                  Compare companies, explore financials and unpack filings.
+                  <br className="desktop-break" /> Ask a question, then follow
+                  the evidence.
+                </p>
+                <div className="examples">
+                  {EXAMPLES.map((example, i) => (
+                    <button key={example} onClick={() => send(example)}>
+                      <span className="example-category">
+                        {
+                          [
+                            "COMPARE",
+                            "RISK FACTORS",
+                            "BUSINESS MODEL",
+                            "GROWTH",
+                          ][i]
+                        }
+                      </span>
+                      <span>{example}</span>
+                      <span className="example-arrow" aria-hidden="true">
+                        ↗
+                      </span>
                     </button>
+                  ))}
+                </div>
+              </section>
+            )}
+            {messages.map((message, i) => (
+              <article
+                key={i}
+                className={`message ${message.role}`}
+                aria-label={
+                  message.role === "user" ? "Your question" : "Research answer"
+                }
+              >
+                <div className={`avatar ${message.role}`} aria-hidden="true">
+                  {message.role === "user" ? "You" : "r"}
+                </div>
+                <div className="message-body">
+                  <div className="message-author">
+                    {message.role === "user" ? "You" : "Rogo Research"}
+                    {message.role === "assistant" && (
+                      <span className="ai-label">AI</span>
+                    )}
+                  </div>
+                  {message.role === "user" ? (
+                    <div className="question">{message.text}</div>
+                  ) : (
+                    <>
+                      {message.steps.length > 0 && (
+                        <details
+                          className="steps"
+                          open={message.status === "streaming"}
+                        >
+                          <summary>
+                            {message.status === "streaming"
+                              ? "Researching sources…"
+                              : `${message.steps.length} lookup${message.steps.length === 1 ? "" : "s"}${message.ms ? ` · ${(message.ms / 1000).toFixed(1)}s` : ""}`}
+                          </summary>
+                          <ul>
+                            {message.steps.map((step) => (
+                              <li key={step.id} className={step.state}>
+                                <span className="step-icon" aria-hidden="true">
+                                  {step.state === "running"
+                                    ? "◌"
+                                    : step.state === "ok"
+                                      ? "✓"
+                                      : "!"}
+                                </span>
+                                <span>
+                                  {step.label}
+                                  {step.error && (
+                                    <small className="step-error">
+                                      {step.error}
+                                    </small>
+                                  )}
+                                </span>
+                                {step.ms != null && (
+                                  <span className="ms">{step.ms}ms</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                      {message.status === "streaming" && !message.text && (
+                        <div className="pending" role="status">
+                          <span className="thinking-dot" />
+                          {message.steps.length
+                            ? "Reviewing the evidence…"
+                            : "Planning the research…"}
+                        </div>
+                      )}
+                      {message.status === "error" ? (
+                        <div className="error" role="alert">
+                          {message.text}
+                          {i === messages.length - 1 && (
+                            <button className="retry" onClick={retry}>
+                              ↻ Retry question
+                            </button>
+                          )}
+                        </div>
+                      ) : message.text ? (
+                        <div className="answer">
+                          <Markdown remarkPlugins={[remarkGfm]}>
+                            {message.text}
+                          </Markdown>
+                        </div>
+                      ) : null}
+                    </>
                   )}
                 </div>
+              </article>
+            ))}
+            {messages.length > 0 && !busy && (
+              <div className="continue-hint">
+                Continue the conversation below. Your previous answers stay in
+                context.
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+        <div className="composer-area">
+          <form
+            className="composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+          >
+            <label className="sr-only" htmlFor="question">
+              {messages.length
+                ? "Ask a follow-up question"
+                : "Ask a research question"}
+            </label>
+            <textarea
+              id="question"
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  if (!busy) send(input);
+                }
+              }}
+              placeholder={
+                busy
+                  ? "Draft your next question while I research…"
+                  : messages.length
+                    ? "Ask a follow-up, compare a metric, or explore another company…"
+                    : "Ask anything about the companies in your coverage…"
+              }
+              rows={2}
+              maxLength={8000}
+              autoFocus
+            />
+            <div className="composer-bottom">
+              <span>
+                {busy
+                  ? "You can keep drafting"
+                  : "Enter to send · Shift + Enter for a new line"}
+              </span>
+              {busy ? (
+                <button
+                  type="button"
+                  className="stop-button"
+                  onClick={() => abortRef.current?.abort()}
+                >
+                  <span aria-hidden="true">■</span> Stop
+                </button>
               ) : (
-                message.text && (
-                  <div className="answer">
-                    <Markdown remarkPlugins={[remarkGfm]}>{message.text}</Markdown>
-                  </div>
-                )
+                <button
+                  type="submit"
+                  className="send-button"
+                  disabled={!input.trim()}
+                  aria-label="Send question"
+                >
+                  Send <span aria-hidden="true">↑</span>
+                </button>
               )}
             </div>
-          ),
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <form
-        className="composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={messages.length ? "Ask a follow-up…" : "Ask a research question…"}
-          disabled={busy}
-          autoFocus
-        />
-        {busy ? (
-          <button type="button" onClick={() => abortRef.current?.abort()}>
-            Stop
-          </button>
-        ) : (
-          <button type="submit" disabled={!input.trim()}>
-            Send
-          </button>
-        )}
-      </form>
+          </form>
+          <p className="disclaimer">
+            AI can make mistakes. Check figures against their cited sources.{" "}
+            <span>Fictional data · Local demo</span>
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
