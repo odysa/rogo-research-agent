@@ -1,5 +1,7 @@
 # Notes
 
+Time spent: approximately 80 minutes, using AI coding tools for implementation and review.
+
 Start with `src/tools.ts` (financial calculations and data caveats) and
 `src/agent.ts` (research loop and stopping behavior).
 
