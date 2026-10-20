@@ -22,6 +22,12 @@ body {
   gap: 20px;
 }
 
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 header h1 {
   margin: 0 0 4px;
   font-size: 20px;
@@ -67,8 +73,11 @@ header p {
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.55;
-  white-space: pre-wrap;
   max-width: 88%;
+}
+
+.bubble.user {
+  white-space: pre-wrap;
 }
 
 .bubble.user {
@@ -83,8 +92,114 @@ header p {
   border: 1px solid #e4e8ed;
 }
 
-.bubble.pending {
+.bubble.assistant {
+  width: 88%;
+}
+
+.pending {
   color: #8b97a3;
+}
+
+.steps {
+  font-size: 12.5px;
+  color: #62707f;
+  margin-bottom: 8px;
+}
+
+.steps summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.steps ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.steps li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.steps .icon {
+  width: 12px;
+  text-align: center;
+}
+
+.steps li.ok .icon {
+  color: #2f8f5b;
+}
+
+.steps li.failed {
+  color: #b5452f;
+}
+
+.steps .ms {
+  margin-left: auto;
+  color: #a3adb8;
+  font-variant-numeric: tabular-nums;
+}
+
+.answer > :first-child {
+  margin-top: 0;
+}
+
+.answer > :last-child {
+  margin-bottom: 0;
+}
+
+.answer table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  display: block;
+  overflow-x: auto;
+}
+
+.answer th,
+.answer td {
+  border: 1px solid #e4e8ed;
+  padding: 5px 9px;
+  text-align: left;
+}
+
+.answer th {
+  background: #f6f7f9;
+}
+
+.answer h1,
+.answer h2,
+.answer h3 {
+  font-size: 15px;
+  margin: 14px 0 6px;
+}
+
+.error {
+  color: #b5452f;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  color: #33414f;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.link:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .composer {
