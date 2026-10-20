@@ -83,6 +83,7 @@ sleeps for a few hundred milliseconds to stand in for a real API.
 | `npm run dev:web` | Web UI only, on port 5173 |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Runs Vitest |
+| `npm run eval` | Runs analyst questions against the live model and fact-checks each answer |
 
 The model defaults to `claude-sonnet-5`. Set `ROGO_MODEL` in `.env` to change it.
 
