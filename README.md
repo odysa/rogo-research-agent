@@ -18,6 +18,14 @@ should also read [AGENTS.md](AGENTS.md).
 The original exercise asks for a focused improvement within 60–90 minutes,
 prioritizing the quality of decisions over the amount of code.
 
+## Architecture
+
+![Request, model/tool loop and streaming response](docs/architecture.svg)
+
+[PNG version](docs/architecture.png). Independent tools run in parallel within a
+model turn; results return to the next model turn. Progress and answer text stream
+back through the API.
+
 ## Setup
 
 Requires Node 22.12+ on the Node 22 line, or Node 24 (including the test runner).
